@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEVITA OS FAST</title>
+    <title>LEVITA OS FIXED</title>
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/chart.js"></script>
 
     <style>
         body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+        
+        /* ЗАГРУЗКА */
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; text-align: center; padding: 20px;}
         .spinner { border: 4px solid #eee; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #error-msg { color: red; font-weight: bold; border: 2px solid red; padding: 20px; border-radius: 10px; background: #fff0f0; display: none; max-width: 90%; }
         
+        /* ИНТЕРФЕЙС */
         .hidden { display: none !important; }
         .container { max-width: 600px; margin: 80px auto; padding: 20px; text-align: center; }
         .btn { padding: 15px; width: 100%; background: black; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
@@ -30,9 +33,8 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <p id="loader-text">Подключение (новая попытка)...</p>
+        <p id="loader-text">Загрузка...</p>
         <div id="error-msg"></div>
-        <button id="retry-btn" class="btn hidden" onclick="location.reload()">Попробовать снова</button>
     </div>
 
     <div id="login-screen" class="hidden container">
@@ -75,22 +77,18 @@
     <script>
         const SB_URL = 'https://rlwdsvttrfjcqbeunilr.supabase.co';
         const SB_KEY = 'sb_publishable_AvbjBkXGEiBVMj-58sjZnA_zt8mqBv3';
-        let supabase, employees = [], currentUser = null;
-
-        // ПРИНУДИТЕЛЬНЫЙ ТАЙМЕР ЗАПУСКАЕТСЯ СРАЗУ
-        setTimeout(() => {
-            const lText = document.getElementById('loader-text');
-            if(lText && lText.style.display !== 'none') {
-                showError("⚠️ Интернет блокирует загрузку Supabase. Попробуйте отключить VPN или AdBlock.");
-            }
-        }, 6000);
+        
+        // ВОТ ЗДЕСЬ БЫЛА ОШИБКА. Я ПЕРЕИМЕНОВАЛ ПЕРЕМЕННУЮ В sbClient
+        let sbClient, employees = [], currentUser = null;
 
         async function init() {
             try {
                 if (!window.supabase) throw new Error("Supabase не загрузился.");
-                supabase = window.supabase.createClient(SB_URL, SB_KEY);
                 
-                const { data, error } = await supabase.from('employees').select('*');
+                // Создаем клиента с новым именем
+                sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+                
+                const { data, error } = await sbClient.from('employees').select('*');
                 if (error) throw error;
                 
                 employees = data || [];
@@ -114,17 +112,11 @@
                 }
 
             } catch (err) {
-                showError(err.message);
+                document.querySelector('.spinner').style.display = 'none';
+                const el = document.getElementById('error-msg');
+                el.style.display = 'block';
+                el.innerHTML = `⚠️ ОШИБКА: ${err.message}`;
             }
-        }
-
-        function showError(msg) {
-            document.querySelector('.spinner').style.display = 'none';
-            document.getElementById('loader-text').style.display = 'none';
-            const el = document.getElementById('error-msg');
-            el.style.display = 'block';
-            el.innerHTML = msg;
-            document.getElementById('retry-btn').classList.remove('hidden');
         }
 
         function showLogin() {
@@ -156,7 +148,8 @@
         }
 
         async function loadTasks() {
-            const { data } = await supabase.from('tasks').select('*').order('id', {ascending: false});
+            // Используем sbClient
+            const { data } = await sbClient.from('tasks').select('*').order('id', {ascending: false});
             const list = document.getElementById('task-list');
             list.innerHTML = "";
             if (data) {
@@ -179,17 +172,17 @@
             }
         }
 
-        async function toggle(id, val) { await supabase.from('tasks').update({is_done: val}).eq('id', id); }
+        async function toggle(id, val) { await sbClient.from('tasks').update({is_done: val}).eq('id', id); }
         async function saveTask() {
             const t = document.getElementById('n-title').value;
             const w = document.getElementById('n-who').value;
             if(!t) return alert("Имя задачи?");
-            await supabase.from('tasks').insert([{title: t, assigned_to: w || null}]);
+            await sbClient.from('tasks').insert([{title: t, assigned_to: w || null}]);
             document.getElementById('n-title').value = "";
             loadTasks();
         }
         async function delTask(id) {
-            if(confirm("Удалить?")) { await supabase.from('tasks').delete().eq('id', id); loadTasks(); }
+            if(confirm("Удалить?")) { await sbClient.from('tasks').delete().eq('id', id); loadTasks(); }
         }
 
         function doLogout() { localStorage.removeItem('levita_user'); location.reload(); }

@@ -3,122 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEVITA OS FIXED</title>
+    <title>LEVITA OS PRO</title>
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/chart.js"></script>
 
     <style>
-        body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; margin: 0; color: #333; }
         
         /* ЗАГРУЗКА */
-        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; text-align: center; padding: 20px;}
-        .spinner { border: 4px solid #eee; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #error-msg { color: red; font-weight: bold; border: 2px solid red; padding: 20px; border-radius: 10px; background: #fff0f0; display: none; max-width: 90%; }
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; }
+        .spinner { border: 4px solid #eee; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         
-        /* ИНТЕРФЕЙС */
-        .hidden { display: none !important; }
-        .container { max-width: 600px; margin: 80px auto; padding: 20px; text-align: center; }
-        .btn { padding: 15px; width: 100%; background: black; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .task-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; text-align: left; border-left: 5px solid black; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .task-card.done { opacity: 0.5; border-color: #ccc; }
-        .sidebar { height: 100%; width: 0; position: fixed; z-index: 200; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.3s; padding-top: 60px; }
+        /* ШАПКА */
+        .header { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; height: 60px;}
+        .menu-icon { font-size: 24px; cursor: pointer; margin-right: 20px; }
+        .motivation { font-weight: bold; font-size: 14px; color: #444; text-align: center; flex-grow: 1; }
+        .user-profile { font-weight: bold; cursor: pointer; position: relative; display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 35px; height: 35px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        
+        /* ВЫПАДАЮЩЕЕ МЕНЮ ПРОФИЛЯ */
+        .dropdown { display: none; position: absolute; top: 50px; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 150px; }
+        .dropdown button { width: 100%; padding: 10px; border: none; background: white; text-align: left; cursor: pointer; color: red; }
+        .dropdown button:hover { background: #f9f9f9; }
+
+        /* БОКОВОЕ МЕНЮ */
+        .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.3s; padding-top: 60px; z-index: 200; }
         .sidebar a { padding: 15px 30px; text-decoration: none; font-size: 18px; color: #f1f1f1; display: block; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #000; color: white; padding: 15px 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+        #overlay { display: none; position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.5); z-index: 150; }
+
+        /* КОНТЕЙНЕРЫ */
+        .container { max-width: 800px; margin: 20px auto; padding: 0 20px; padding-bottom: 80px; }
+        .hidden { display: none !important; }
+        
+        /* КАРТОЧКИ И ГРАФИКИ */
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .chart-container { position: relative; height: 250px; width: 100%; }
+        
+        /* ЭЛЕМЕНТЫ ФОРМ */
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 12px; width: 100%; background: black; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .btn-green { background: #27ae60; }
+        
+        /* ЗАДАЧИ */
+        .task-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .task-item:last-child { border-bottom: none; }
+        .task-done { text-decoration: line-through; color: #aaa; }
+
+        /* ЭКРАН ВХОДА */
+        #login-screen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white; }
     </style>
 </head>
 <body>
 
     <div id="loader">
         <div class="spinner"></div>
-        <p id="loader-text">Загрузка...</p>
-        <div id="error-msg"></div>
+        <p>Запуск LEVITA OS...</p>
     </div>
 
-    <div id="login-screen" class="hidden container">
-        <img src="logo.png" style="max-width: 150px; margin-bottom: 20px;">
-        <h3>Вход в систему</h3>
-        <select id="login-user"><option>Загрузка...</option></select>
-        <input type="password" id="login-pass" placeholder="Пароль">
-        <button class="btn" onclick="doLogin()">ВОЙТИ</button>
+    <div id="login-screen" class="hidden">
+        <img src="logo.png" style="width: 150px; margin-bottom: 20px;">
+        <div style="width: 300px;">
+            <h3>Вход</h3>
+            <select id="login-user"><option>Загрузка...</option></select>
+            <input type="password" id="login-pass" placeholder="Пароль">
+            <button class="btn" onclick="doLogin()">ВОЙТИ</button>
+            <p id="login-error" style="color:red; display:none; margin-top:10px; text-align:center;">Неверный пароль</p>
+        </div>
     </div>
 
     <div id="app" class="hidden">
-        <div class="navbar">
-            <span style="font-size:24px; cursor:pointer;" onclick="toggleNav()">&#9776;</span>
-            <b>LEVITA OS</b>
+        
+        <div class="header">
+            <div style="display:flex; align-items:center;">
+                <span class="menu-icon" onclick="toggleNav()">&#9776;</span>
+            </div>
+            
+            <div class="motivation">
+                <span id="moti-name">Имя</span>, твой вклад очень ценный! 💎
+            </div>
+
+            <div class="user-profile" onclick="toggleProfile()">
+                <div id="header-name">Имя</div>
+                <div class="user-avatar">👤</div>
+                <div id="profile-dropdown" class="dropdown">
+                    <button onclick="doLogout()">Выйти</button>
+                </div>
+            </div>
         </div>
+
         <div id="sidebar" class="sidebar">
             <a href="javascript:void(0)" onclick="toggleNav()" style="text-align:right;">&times;</a>
             <a href="#" onclick="showPage('home')">🏠 Главная</a>
             <a href="#" onclick="showPage('tasks')">⚡ Задачи</a>
-            <a href="#" onclick="doLogout()" style="color:red; margin-top:50px;">Выйти</a>
+            <a href="#" onclick="showPage('plan')">📅 План на день</a>
+            <a href="#" onclick="showPage('admin')" id="menu-admin" class="hidden">⚙️ Админка</a>
         </div>
+        <div id="overlay" onclick="toggleNav()"></div>
 
-        <div class="container" id="page-home">
-            <h2>Привет, <span id="u-name"></span>!</h2>
-            <p>Нажми меню слева.</p>
-        </div>
-
-        <div class="container hidden" id="page-tasks">
-            <h2>Задачи</h2>
-            <div id="admin-panel" class="hidden" style="margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px;">
-                <h3>+ Новая задача</h3>
-                <input id="n-title" placeholder="Название">
-                <select id="n-who"><option value="">Всем</option></select>
-                <button class="btn" onclick="saveTask()" style="background:green;">Сохранить</button>
+        <div id="page-home" class="container">
+            <div class="card">
+                <h3>📊 Мои Продажи (План: <span id="my-target-text">0</span> zł)</h3>
+                <div class="chart-container">
+                    <canvas id="chartPersonal"></canvas>
+                </div>
+                <p style="font-size:12px; color:#666; margin-top:10px;">*Данные обновляются из Google Таблицы</p>
             </div>
-            <div id="task-list"></div>
+
+            <div class="card">
+                <h3>🌍 Общая выручка студии</h3>
+                <div class="chart-container">
+                    <canvas id="chartTotal"></canvas>
+                </div>
+            </div>
         </div>
+
+        <div id="page-tasks" class="container hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2>Задачи</h2>
+                <button id="btn-add-task" class="btn btn-green hidden" style="width:auto;" onclick="toggleTaskForm()">+ Создать</button>
+            </div>
+            
+            <div id="add-task-form" class="card hidden">
+                <h4>Новая задача</h4>
+                <input id="n-title" placeholder="Что сделать?">
+                <input id="n-desc" placeholder="Детали">
+                <select id="n-assignee"><option value="">Всем</option></select>
+                <button class="btn" onclick="saveTask()">Сохранить</button>
+            </div>
+
+            <div id="task-list" class="card"></div>
+        </div>
+
+        <div id="page-plan" class="container hidden">
+            <h2>📅 Генератор Плана</h2>
+            <div class="card">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="grid-column:span 2"><label>Админ</label><input type="text" id="p-admin" placeholder="Имя"></div>
+                    <div><label>План (zł)</label><input type="number" id="p-target"></div>
+                    <div><label>Ср. чек</label><input type="number" id="p-price"></div>
+                </div>
+                <textarea id="p-data" placeholder="Вставь таблицу сюда..." style="height:100px; margin-top:10px;"></textarea>
+                <button class="btn" onclick="genPlan()">Сгенерировать</button>
+            </div>
+            <div id="plan-res" class="card hidden">
+                <textarea id="plan-out" style="height:200px; width:100%; border:none;" readonly></textarea>
+                <button class="btn btn-green" onclick="copyPlan()">Копировать</button>
+            </div>
+        </div>
+
+        <div id="page-admin" class="container hidden">
+            <h2>⚙️ Управление</h2>
+            
+            <div class="card">
+                <h3>🔗 Ссылка на Google Таблицу</h3>
+                <p style="font-size:12px; color:#666;">Вставь ссылку на опубликованный CSV (Файл -> Поделиться -> Опубликовать -> Выбери ЛИСТ -> CSV)</p>
+                <input id="admin-sheet-url" placeholder="https://docs.google.com/...output=csv">
+                <button class="btn" onclick="saveSheetUrl()">Сохранить ссылку</button>
+            </div>
+
+            <div class="card">
+                <h3>🎯 Цели сотрудников (zł)</h3>
+                <div id="targets-list"></div>
+            </div>
+        </div>
+
     </div>
 
     <script>
+        // --- КОНФИГУРАЦИЯ ---
         const SB_URL = 'https://rlwdsvttrfjcqbeunilr.supabase.co';
         const SB_KEY = 'sb_publishable_AvbjBkXGEiBVMj-58sjZnA_zt8mqBv3';
         
-        // ВОТ ЗДЕСЬ БЫЛА ОШИБКА. Я ПЕРЕИМЕНОВАЛ ПЕРЕМЕННУЮ В sbClient
-        let sbClient, employees = [], currentUser = null;
+        let sbClient;
+        let employees = [];
+        let currentUser = null;
+        let sheetUrl = "";
 
+        // --- ИНИЦИАЛИЗАЦИЯ ---
         async function init() {
             try {
-                if (!window.supabase) throw new Error("Supabase не загрузился.");
-                
-                // Создаем клиента с новым именем
+                if(!window.supabase) throw new Error("Нет сети");
                 sbClient = window.supabase.createClient(SB_URL, SB_KEY);
                 
-                const { data, error } = await sbClient.from('employees').select('*');
-                if (error) throw error;
-                
-                employees = data || [];
-                
-                const s1 = document.getElementById('login-user');
-                const s2 = document.getElementById('n-who');
-                s1.innerHTML = '<option value="" disabled selected>Кто ты?</option>';
-                s2.innerHTML = '<option value="">Всем</option>';
-                
-                employees.forEach(u => {
-                    s1.innerHTML += `<option value="${u.name}">${u.name}</option>`;
-                    s2.innerHTML += `<option value="${u.name}">${u.name}</option>`;
-                });
+                // 1. Грузим сотрудников
+                const { data: emps } = await sbClient.from('employees').select('*').order('name');
+                employees = emps || [];
 
+                // 2. Грузим настройки (ссылку на таблицу)
+                const { data: settings } = await sbClient.from('settings').select('*').eq('key', 'sheet_url').single();
+                if(settings) sheetUrl = settings.value;
+
+                // 3. Заполняем списки
+                setupSelects();
+
+                // 4. Проверка сессии (ПАМЯТЬ)
                 const saved = localStorage.getItem('levita_user');
                 if (saved) {
                     const u = employees.find(e => e.name === saved);
-                    if (u) enterApp(u); else showLogin();
-                } else {
-                    showLogin();
+                    if (u) {
+                        enterApp(u);
+                        return;
+                    }
                 }
+                showLogin();
 
-            } catch (err) {
-                document.querySelector('.spinner').style.display = 'none';
-                const el = document.getElementById('error-msg');
-                el.style.display = 'block';
-                el.innerHTML = `⚠️ ОШИБКА: ${err.message}`;
+            } catch (e) {
+                alert("Ошибка старта: " + e.message);
+                showLogin();
             }
         }
 
+        function setupSelects() {
+            const s1 = document.getElementById('login-user');
+            const s2 = document.getElementById('n-assignee');
+            s1.innerHTML = '<option disabled selected>Выбери себя</option>';
+            s2.innerHTML = '<option value="">Всем</option>';
+            employees.forEach(u => {
+                s1.innerHTML += `<option value="${u.name}">${u.name}</option>`;
+                s2.innerHTML += `<option value="${u.name}">${u.name}</option>`;
+            });
+        }
+
+        // --- ВХОД / ВЫХОД ---
         function showLogin() {
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
@@ -128,72 +235,247 @@
             const name = document.getElementById('login-user').value;
             const pass = document.getElementById('login-pass').value;
             const u = employees.find(e => e.name === name);
+            
             if (u && u.password === pass) {
                 localStorage.setItem('levita_user', name);
                 enterApp(u);
             } else {
-                alert("Неверный пароль!");
+                document.getElementById('login-error').style.display = 'block';
             }
+        }
+
+        function doLogout() {
+            localStorage.removeItem('levita_user');
+            location.reload();
         }
 
         function enterApp(u) {
             currentUser = u;
-            document.getElementById('u-name').innerText = u.name;
+            // UI обновления
+            document.getElementById('header-name').innerText = u.name;
+            document.getElementById('moti-name').innerText = u.name;
+            document.getElementById('my-target-text').innerText = u.monthly_target || 0;
+            
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            if (u.role === 'admin') document.getElementById('admin-panel').classList.remove('hidden');
+
+            if (u.role === 'admin') {
+                document.getElementById('menu-admin').classList.remove('hidden');
+                document.getElementById('btn-add-task').classList.remove('hidden');
+                renderAdminPanel();
+            }
+
             showPage('home');
             loadTasks();
+            loadCharts(); // Загрузка графиков
         }
 
-        async function loadTasks() {
-            // Используем sbClient
-            const { data } = await sbClient.from('tasks').select('*').order('id', {ascending: false});
-            const list = document.getElementById('task-list');
-            list.innerHTML = "";
-            if (data) {
-                data.forEach(t => {
-                    if (currentUser.role === 'admin' || !t.assigned_to || t.assigned_to === currentUser.name) {
-                        let check = t.is_done ? 'checked' : '';
-                        let cls = t.is_done ? 'done' : '';
-                        let del = currentUser.role === 'admin' ? `<button onclick="delTask(${t.id})" style="margin-left:auto;border:none;background:none;color:red;">&times;</button>` : '';
-                        list.innerHTML += `
-                        <div class="task-card ${cls}">
-                            <input type="checkbox" ${check} onchange="toggle(${t.id}, this.checked)" style="width:20px;height:20px;margin:0 10px 0 0;">
-                            <div>
-                                <b>${t.title}</b><br>
-                                <small>${t.description || ''} ${t.assigned_to ? '('+t.assigned_to+')' : ''}</small>
-                            </div>
-                            ${del}
-                        </div>`;
-                    }
+        // --- ГРАФИКИ И ДАННЫЕ ---
+        async function loadCharts() {
+            if (!sheetUrl) return; // Если ссылки нет, не грузим
+
+            try {
+                // Качаем CSV
+                const res = await fetch(sheetUrl);
+                const text = await res.text();
+                const rows = text.split(/\r\n|\n/).map(r => r.split(','));
+
+                // Ищем колонки (предполагаем: Имя в A(0), Сумма в B(1) или настраиваемся)
+                // Для простоты: ищем строку, где есть имя сотрудника
+                
+                let mySales = 0;
+                let totalSales = 0;
+
+                rows.forEach(row => {
+                    // Очень простая логика: ищем имя в строке, берем число рядом
+                    const str = row.join(' ').toLowerCase();
+                    
+                    // Общая сумма (ищем ключевое слово "ИТОГО" или суммируем все?)
+                    // Пока упростим: считаем всё
+                    
+                    employees.forEach(emp => {
+                        if (str.includes(emp.name.toLowerCase())) {
+                            // Пытаемся найти число в этой строке (например во 2 колонке)
+                            // Это место потребует настройки под твою конкретную таблицу!
+                            // Сейчас я предполагаю, что сумма во 2-й колонке (индекс 1)
+                            const val = parseFloat(row[1]) || 0; 
+                            if (emp.name === currentUser.name) mySales = val;
+                            totalSales += val;
+                        }
+                    });
                 });
+
+                // Рисуем графики
+                renderPersonalChart(mySales, currentUser.monthly_target || 0);
+                renderTotalChart(totalSales, 100000); // Общая цель пока хардкод или сумма целей
+
+            } catch (e) {
+                console.error("Ошибка графиков:", e);
             }
         }
 
-        async function toggle(id, val) { await sbClient.from('tasks').update({is_done: val}).eq('id', id); }
-        async function saveTask() {
-            const t = document.getElementById('n-title').value;
-            const w = document.getElementById('n-who').value;
-            if(!t) return alert("Имя задачи?");
-            await sbClient.from('tasks').insert([{title: t, assigned_to: w || null}]);
-            document.getElementById('n-title').value = "";
-            loadTasks();
-        }
-        async function delTask(id) {
-            if(confirm("Удалить?")) { await sbClient.from('tasks').delete().eq('id', id); loadTasks(); }
+        function renderPersonalChart(actual, target) {
+            const ctx = document.getElementById('chartPersonal').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Факт', 'Цель'],
+                    datasets: [{
+                        label: 'Выручка (zł)',
+                        data: [actual, target],
+                        backgroundColor: ['#3498db', '#ecf0f1']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
         }
 
-        function doLogout() { localStorage.removeItem('levita_user'); location.reload(); }
+        function renderTotalChart(actual, target) {
+            const ctx = document.getElementById('chartTotal').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Сделано', 'Осталось'],
+                    datasets: [{
+                        data: [actual, target - actual > 0 ? target - actual : 0],
+                        backgroundColor: ['#27ae60', '#eee']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+
+        // --- ЗАДАЧИ ---
+        async function loadTasks() {
+            const { data } = await sbClient.from('tasks').select('*').order('id', {ascending: false});
+            const list = document.getElementById('task-list');
+            list.innerHTML = "";
+            if (!data) return;
+
+            data.forEach(t => {
+                if (currentUser.role === 'admin' || !t.assigned_to || t.assigned_to === currentUser.name) {
+                    const div = document.createElement('div');
+                    div.className = "task-item";
+                    div.innerHTML = `
+                        <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask(${t.id}, this.checked)" style="width:20px; margin-right:15px;">
+                        <div style="flex-grow:1;">
+                            <div class="${t.is_done ? 'task-done' : ''}" style="font-weight:bold;">${t.title}</div>
+                            <div style="font-size:12px; color:#888;">${t.assigned_to || 'Всем'}</div>
+                        </div>
+                        ${currentUser.role === 'admin' ? `<button onclick="delTask(${t.id})" style="border:none; bg:none; color:red;">&times;</button>` : ''}
+                    `;
+                    list.appendChild(div);
+                }
+            });
+        }
+        
+        async function toggleTask(id, val) { await sbClient.from('tasks').update({is_done: val}).eq('id', id); loadTasks(); }
+        async function saveTask() {
+            const t = document.getElementById('n-title').value;
+            const assignee = document.getElementById('n-assignee').value;
+            if(!t) return;
+            await sbClient.from('tasks').insert([{title: t, assigned_to: assignee || null}]);
+            document.getElementById('n-title').value = "";
+            toggleTaskForm();
+            loadTasks();
+        }
+        async function delTask(id) { if(confirm("Удалить?")) { await sbClient.from('tasks').delete().eq('id', id); loadTasks(); } }
+
+        // --- АДМИНКА ---
+        function renderAdminPanel() {
+            document.getElementById('admin-sheet-url').value = sheetUrl;
+            const list = document.getElementById('targets-list');
+            list.innerHTML = "";
+            
+            employees.forEach(emp => {
+                const div = document.createElement('div');
+                div.style.marginBottom = "10px";
+                div.innerHTML = `
+                    <label>${emp.name}: </label>
+                    <input type="number" value="${emp.monthly_target || 0}" id="target-${emp.id}" style="width:100px;">
+                    <button class="btn" style="width:auto; padding:5px 10px;" onclick="saveTarget(${emp.id})">OK</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function saveSheetUrl() {
+            const url = document.getElementById('admin-sheet-url').value;
+            // Пробуем обновить или вставить
+            const { error } = await sbClient.from('settings').upsert({ key: 'sheet_url', value: url });
+            if (!error) { alert("Ссылка сохранена!"); sheetUrl = url; }
+            else alert("Ошибка: " + error.message);
+        }
+
+        async function saveTarget(id) {
+            const val = document.getElementById(`target-${id}`).value;
+            await sbClient.from('employees').update({ monthly_target: val }).eq('id', id);
+            alert("Цель обновлена");
+        }
+
+        // --- ПЛАН ГЕНЕРАТОР (Тот же код) ---
+        function genPlan() {
+            let raw = document.getElementById('p-data').value;
+            let adm = document.getElementById('p-admin').value || "Админ";
+            let trg = parseFloat(document.getElementById('p-target').value) || 0;
+            let prc = parseFloat(document.getElementById('p-price').value) || 0;
+            if (!raw) return alert("Нет таблицы");
+            let rows = raw.split(/\r\n|\n/).map(r => r.split('\t'));
+            let sessions = {}; let stats = {c60:0, c39:0, sTot:0};
+            rows.forEach(c => {
+                if (c.length < 5 || (c[7] && c[7].includes("Time"))) return;
+                let time = c[7], grp = c[4], name = c[0], pay = c[12]||"", left = parseInt(c[13])||0;
+                if (!time || !grp) return;
+                let key = time + "_" + grp;
+                if (!sessions[key]) sessions[key] = {t:time, g:grp, s:[], u:[]};
+                let star = "";
+                if (pay==="") { star = name+" - 60❌"; stats.c60++; }
+                else if (pay==="Płatne zajęcia próbne") { star = name+" - 39✅"; stats.c39++; }
+                else if (pay.includes("Bezpłatn") && pay.includes("próbne")) { star = name+" - Пробное 0"; }
+                if (star) { sessions[key].s.push(star); if(!pay.includes("60❌")) stats.sTot++; }
+                let upg = false; if (pay.includes("Prezent")) upg = true;
+                let th = 0; if (pay.includes("96")) th=32; else if (pay.includes("48")) th=24; else if (pay.includes("24")) th=12; else if (pay.includes("8")) th=5;
+                if (th>0 && left<=th) upg = true;
+                if (upg) sessions[key].u.push(name + (pay.includes("Prezent") ? " - Проверь❓" : ""));
+            });
+            stats.sTot = stats.c60 + stats.c39 + (stats.sTot - stats.c39);
+            let come = Math.round(stats.c39 + (stats.c60 * 0.33));
+            let newS = Math.round(come * 0.3);
+            let sumS = Math.round(newS * prc);
+            let diff = trg - sumS;
+            let txt = `ПЛАН ${adm.toUpperCase()}   ${new Date().toLocaleDateString()}\nВыручка: ${trg} zł\nЗвонки: 100\nДозвоны: 20\nЗаписи: 5\n————————————————\n`;
+            Object.keys(sessions).sort().forEach(k => {
+                let s = sessions[k];
+                txt += `Расписание\n————————————————\n${s.t} - ${s.g}\n————————————————\n`;
+                if(s.s.length) txt += `Звёзды 🌟\n${s.s.join('\n')}\n`;
+                if(s.u.length) txt += `\nАпгрейды📈\n${s.u.join('\n')}\n`;
+                txt += `\n`;
+            });
+            txt += `————————————————\nЗаписаны на пробное: ${stats.sTot}\nПридут по плану: ${come}\nПродажи новым: ${newS}\nСумма: ${sumS}\n🔥 ДО ПЛАНА: ${diff}`;
+            document.getElementById('plan-out').value = txt; document.getElementById('plan-res').classList.remove('hidden');
+        }
+        function copyPlan() { navigator.clipboard.writeText(document.getElementById('plan-out').value); alert("Copied!"); }
+
+        // --- UI ---
         function toggleNav() { 
             const s = document.getElementById('sidebar'); 
-            s.style.width = s.style.width === '250px' ? '0' : '250px'; 
+            const o = document.getElementById('overlay');
+            if(s.style.width === '250px') { s.style.width = '0'; o.style.display='none'; }
+            else { s.style.width = '250px'; o.style.display='block'; }
+        }
+        function toggleProfile() {
+            const d = document.getElementById('profile-dropdown');
+            d.style.display = d.style.display === 'block' ? 'none' : 'block';
         }
         function showPage(id) {
             toggleNav();
-            ['page-home', 'page-tasks'].forEach(p => document.getElementById(p).classList.add('hidden'));
+            ['page-home','page-tasks','page-plan','page-admin'].forEach(p => document.getElementById(p).classList.add('hidden'));
             document.getElementById('page-'+id).classList.remove('hidden');
+        }
+        function toggleTaskForm() {
+            document.getElementById('add-task-form').classList.toggle('hidden');
         }
 
         window.onload = init;

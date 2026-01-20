@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEVITA Team</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; overflow-x: hidden; }
+        
+        /* ЗАГРУЗКА */
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; padding: 20px; text-align: center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ВХОД */
+        #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #fff; }
+        .login-card { width: 90%; max-width: 320px; text-align: center; padding: 20px; }
+        .logo-img { max-width: 180px; margin-bottom: 30px; }
+
+        /* ИНТЕРФЕЙС */
+        .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #000; color: white; padding: 15px 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+        .menu-btn { font-size: 24px; cursor: pointer; }
+        .user-info { display: flex; align-items: center; font-weight: bold; }
+        
+        .sidebar { height: 100%; width: 0; position: fixed; z-index: 200; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.3s; padding-top: 60px; }
+        .sidebar a { padding: 15px 30px; text-decoration: none; font-size: 18px; color: #f1f1f1; display: block; transition: 0.3s; }
+        .close-btn { position: absolute; top: 10px; right: 20px; font-size: 36px; margin-left: 50px; cursor: pointer; color: white; }
+        #overlay { display: none; position: fixed; width: 100%; height: 100%; top: 0; left: 0; background-color: rgba(0,0,0,0.5); z-index: 150; }
+
+        .container { margin-top: 80px; padding: 20px; text-align: center; padding-bottom: 80px; }
+        .hidden { display: none !important; }
+        
+        /* КНОПКИ И ПОЛЯ */
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn { padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; margin: 5px 0; color: white; font-weight: bold; }
+        .btn-login { background-color: #000; color: #f1c40f; }
+        .btn-yes { background-color: #4CAF50; }
+        .btn-no { background-color: #ff4d4d; }
+        .btn-tg { background-color: #0088cc; }
+        .btn-copy { background-color: #6c5ce7; }
+        
+        /* ДЛЯ ГЛАВНОЙ */
+        .home-logo-big { max-width: 80%; width: 250px; margin-top: 50px; margin-bottom: 20px; }
+        .welcome-text { color: #888; font-size: 18px; }
+
+        /* ЗАДАЧИ */
+        .date-header { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #333; text-align: left; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .task-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: left; transition: 0.2s; border-left: 5px solid #000; }
+        .task-card.done { opacity: 0.6; border-left-color: #ccc; }
+        .task-header { display: flex; align-items: flex-start; justify-content: space-between; }
+        .task-title-row { display: flex; align-items: center; width: 100%; }
+        .task-checkbox { width: 24px; height: 24px; margin-right: 15px; cursor: pointer; flex-shrink: 0; }
+        .task-title { font-size: 18px; font-weight: 600; color: #333; flex-grow: 1; }
+        .task-done-text { text-decoration: line-through; color: #999; }
+        .details-btn { background: none; border: none; color: #0088cc; cursor: pointer; font-size: 14px; font-weight: bold; margin-left: 10px; white-space: nowrap; }
+        .details-content { margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; font-size: 14px; color: #555; line-height: 1.4; display: none; border-top: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Загрузка...</p>
+        <div id="error-log" style="color:red; margin-top:10px; font-size:12px;"></div>
+    </div>
+
+    <div id="login-screen" class="hidden">
+        <div class="login-card">
+            <img src="logo.png" alt="LEVITA" class="logo-img">
+            <input type="text" id="username" placeholder="Логин" autocomplete="off">
+            <input type="password" id="password" placeholder="Пароль">
+            <div id="login-error" style="color:red; display:none; margin-bottom:10px;">Неверно</div>
+            <button class="btn btn-login" onclick="attemptLogin()">ВОЙТИ</button>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <div class="navbar">
+            <div class="menu-btn" onclick="openNav()">&#9776;</div>
+            <div class="user-info">👤 <span id="user-name"></span></div>
+        </div>
+
+        <div id="sidebar" class="sidebar">
+            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">&times;</a>
+            <a href="#" onclick="showPage('home')">🏠 Главная</a>
+            <a href="#" onclick="showPage('tasks')">⚡ Задачи</a>
+            <a href="#" onclick="startChecklist()">📋 Чек-лист</a>
+            <a href="#" onclick="showPage('plan')">📅 План</a>
+            <a href="#" onclick="doLogout()" style="color:#ff4d4d; margin-top:50px">Выйти</a>
+        </div>
+        <div id="overlay" onclick="closeNav()"></div>
+
+        <div class="container">
+            
+            <div id="page-home">
+                <img src="logo.png" alt="Levita Logo" class="home-logo-big">
+                <p class="welcome-text">Добро пожаловать в систему!</p>
+                <p style="color:#aaa; margin-top:10px; font-size:14px;">Откройте меню слева, чтобы начать работу.</p>
+            </div>
+
+            <div id="page-tasks" class="hidden">
+                <div id="today-date" class="date-header"></div>
+                <div id="tasks-list"></div>
+                <p id="no-tasks" class="hidden" style="color:#999; margin-top:50px;">Задач нет 🎉</p>
+            </div>
+
+            <div id="page-checklist" class="hidden">
+                <div style="color:#888; margin-bottom:10px;">Вопрос <span id="q-step">1</span></div>
+                <h2 id="q-text" style="min-height:60px;">...</h2>
+                <div style="margin-top:40px;">
+                    <button class="btn btn-yes" onclick="answer(true)">СДЕЛАНО</button>
+                    <button class="btn btn-no" onclick="answer(false)">НЕ СДЕЛАНО</button>
+                </div>
+            </div>
+
+            <div id="page-result" class="hidden">
+                <h2>Отчет готов</h2>
+                <textarea id="final-report" style="height:200px; font-family:monospace;" readonly></textarea>
+                <button class="btn btn-tg" onclick="sendTg()">Отправить в Telegram</button>
+                <button class="btn" style="background:#eee; color:#333" onclick="showPage('home')">На главную</button>
+            </div>
+
+            <div id="page-plan" class="hidden">
+                <h2>📅 Генератор Плана</h2>
+                <div style="text-align:left; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="grid-column:span 2"><label>Админ</label><input type="text" id="p-admin" placeholder="Имя"></div>
+                    <div><label>План (zł)</label><input type="number" id="p-target"></div>
+                    <div><label>Ср. чек</label><input type="number" id="p-price"></div>
+                </div>
+                <label style="margin-top:15px; display:block; text-align:left;">Таблица из Google:</label>
+                <textarea id="p-data" placeholder="Вставь таблицу сюда..." style="height:100px;"></textarea>
+                <button class="btn btn-login" onclick="genPlan()">Сгенерировать</button>
+                <div id="plan-res" class="hidden" style="margin-top:20px;">
+                    <textarea id="plan-out" style="height:200px; font-family:monospace;" readonly></textarea>
+                    <button class="btn btn-copy" onclick="copyPlan()">Копировать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ⚙️ НАСТРОЙКИ (МЕНЯЙ ЭТО) ---
+        
+        // 1. ССЫЛКА НА ТАБЛИЦУ (3 колонки: Задача, Детали, Кто)
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3roa3xekBb0f5v50n5ssR7Sn7P15todLUgqk9ergBH46L9AsNr3vSLDV2sLOSvtPlxWJZPwnd_ILR/pub?output=csv";
+        
+        // 2. СПИСОК СОТРУДНИКОВ И ПАРОЛИ (В КОДЕ)
+        const USERS = {
+            "alex": "1111",
+            "maria": "2222",
+            "admin": "admin",
+            "kate": "5555"
+        };
+        // --------------------------------
+
+        let dbTasks = [];
+        const questions = ["Зал проветрен?", "Музыка включена?", "Коврики разложены?", "Вода в кулере есть?", "Свет настроен?"];
+        let reportData = [];
+
+        // --- ГЛАВНЫЙ ЗАПУСК ---
+        async function init() {
+            try {
+                // Установка даты
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById('today-date').innerText = new Date().toLocaleDateString('ru-RU', options);
+
+                // Проверка: уже вошел? (ПАМЯТЬ)
+                const savedUser = localStorage.getItem('levita_current_user');
+                
+                // Загрузка данных
+                let res = await fetch(SHEET_URL + "&t=" + Date.now());
+                if (!res.ok) throw new Error("Ошибка загрузки");
+                let text = await res.text();
+                if (text.includes("<html")) throw new Error("Таблица закрыта паролем!");
+                
+                parseCSV(text);
+                
+                document.getElementById('loader').classList.add('hidden');
+
+                if (savedUser && USERS[savedUser]) {
+                    loginSuccess(savedUser);
+                } else {
+                    document.getElementById('login-screen').classList.remove('hidden');
+                }
+
+            } catch (e) {
+                document.querySelector('.spinner').style.display = 'none';
+                document.getElementById('error-log').innerText = e.message;
+            }
+        }
+
+        function parseCSV(text) {
+            let rows = text.split(/\r\n|\n/).map(row => row.split(','));
+            dbTasks = [];
+            for (let i = 1; i < rows.length; i++) {
+                let c = rows[i];
+                if (c.length < 1) continue;
+                let title = c[0] ? c[0].replace(/^"|"$/g, '').trim() : "";
+                let desc = c[1] ? c[1].replace(/^"|"$/g, '').trim() : "";
+                let who = c[2] ? c[2].replace(/^"|"$/g, '').trim().toLowerCase() : "";
+                if (title) dbTasks.push({ title, desc, who });
+            }
+        }
+        init();
+
+        // --- ЛОГИКА ВХОДА ---
+        function attemptLogin() {
+            let u = document.getElementById('username').value.toLowerCase().trim();
+            let p = document.getElementById('password').value.trim();
+            
+            if (USERS[u] && USERS[u] === p) {
+                localStorage.setItem('levita_current_user', u);
+                loginSuccess(u);
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        function loginSuccess(u) {
+            window.currentUser = u;
+            let displayName = u.charAt(0).toUpperCase() + u.slice(1);
+            document.getElementById('user-name').innerText = displayName;
+            
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            
+            // Сразу показываем Главную (Логотип), а задачи грузим в фоне
+            showPage('home'); 
+            renderTasks();
+        }
+
+        function doLogout() {
+            localStorage.removeItem('levita_current_user');
+            location.reload(); 
+        }
+
+        // --- ЗАДАЧИ ---
+        function renderTasks() {
+            let list = document.getElementById('tasks-list');
+            list.innerHTML = "";
+            let status = JSON.parse(localStorage.getItem('levita_tasks_v4') || "{}");
+            let hasTasks = false;
+
+            dbTasks.forEach((t, i) => {
+                if (t.who === "" || t.who === window.currentUser) {
+                    hasTasks = true;
+                    let isDone = status[i] || false;
+                    let cls = isDone ? 'task-card done' : 'task-card';
+                    let textStyle = isDone ? 'task-done-text' : '';
+                    let check = isDone ? 'checked' : '';
+                    let detailsBtn = t.desc ? `<button class="details-btn" onclick="toggleDetails(${i})">Подробнее ▾</button>` : '';
+                    let detailsDiv = t.desc ? `<div id="details-${i}" class="details-content">${t.desc}</div>` : '';
+
+                    let html = `
+                    <div class="${cls}">
+                        <div class="task-header">
+                            <div class="task-title-row">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask(${i}, this)" ${check}>
+                                <span class="task-title ${textStyle}">${t.title}</span>
+                            </div>
+                            ${detailsBtn}
+                        </div>
+                        ${detailsDiv}
+                    </div>`;
+                    list.innerHTML += html;
+                }
+            });
+
+            if (!hasTasks) document.getElementById('no-tasks').classList.remove('hidden');
+        }
+
+        function toggleTask(i, cb) {
+            let s = JSON.parse(localStorage.getItem('levita_tasks_v4') || "{}");
+            s[i] = cb.checked;
+            localStorage.setItem('levita_tasks_v4', JSON.stringify(s));
+            renderTasks();
+        }
+
+        function toggleDetails(i) {
+            let el = document.getElementById(`details-${i}`);
+            el.style.display = (el.style.display === "block") ? "none" : "block";
+        }
+
+        // --- НАВИГАЦИЯ ---
+        function openNav() { document.getElementById('sidebar').style.width = "250px"; document.getElementById('overlay').style.display = "block"; }
+        function closeNav() { document.getElementById('sidebar').style.width = "0"; document.getElementById('overlay').style.display = "none"; }
+        
+        function showPage(id) {
+            closeNav();
+            // Скрываем все страницы
+            ['page-home','page-tasks','page-checklist','page-result','page-plan'].forEach(p => document.getElementById(p).classList.add('hidden'));
+            // Показываем нужную
+            document.getElementById('page-' + id).classList.remove('hidden');
+        }
+        
+        let qStep = 0;
+        function startChecklist() { showPage('checklist'); qStep = 0; reportData = []; nextQ(); }
+        function nextQ() {
+            if (qStep < questions.length) {
+                document.getElementById('q-text').innerText = questions[qStep];
+                document.getElementById('q-step').innerText = qStep + 1;
+            } else { finishChecklist(); }
+        }
+        function answer(yes) { reportData.push((yes ? "✅ " : "❌ ") + questions[qStep]); qStep++; nextQ(); }
+        function finishChecklist() {
+            showPage('result');
+            let txt = `🩰 LEVITA CHECKLIST\n👤 ${window.currentUser}\n📅 ${new Date().toLocaleString('ru')}\n\n` + reportData.join('\n');
+            document.getElementById('final-report').value = txt;
+        }
+        function sendTg() { window.open("https://t.me/share/url?url=" + encodeURIComponent(document.getElementById('final-report').value)); }
+
+        function genPlan() {
+            let raw = document.getElementById('p-data').value;
+            let adm = document.getElementById('p-admin').value || "Админ";
+            let trg = parseFloat(document.getElementById('p-target').value) || 0;
+            let prc = parseFloat(document.getElementById('p-price').value) || 0;
+            if (!raw) return alert("Вставь таблицу!");
+            let rows = raw.split(/\r\n|\n/).map(r => r.split('\t'));
+            let sessions = {}; let stats = {c60:0, c39:0, sTot:0};
+            rows.forEach(c => {
+                if (c.length < 5 || (c[7] && c[7].includes("Time"))) return;
+                let time = c[7], grp = c[4], name = c[0], pay = c[12]||"", left = parseInt(c[13])||0;
+                if (!time || !grp) return;
+                let key = time + "_" + grp;
+                if (!sessions[key]) sessions[key] = {t:time, g:grp, s:[], u:[]};
+                let star = "";
+                if (pay==="") { star = name+" - 60❌"; stats.c60++; }
+                else if (pay==="Płatne zajęcia próbne") { star = name+" - 39✅"; stats.c39++; }
+                else if (pay.includes("Bezpłatn") && pay.includes("próbne")) { star = name+" - Пробное 0"; }
+                if (star) { sessions[key].s.push(star); if(!pay.includes("60❌")) stats.sTot++; }
+                let upg = false; if (pay.includes("Prezent")) upg = true;
+                let th = 0; if (pay.includes("96")) th=32; else if (pay.includes("48")) th=24; else if (pay.includes("24")) th=12; else if (pay.includes("8")) th=5;
+                if (th>0 && left<=th) upg = true;
+                if (upg) sessions[key].u.push(name + (pay.includes("Prezent") ? " - Проверь❓" : ""));
+            });
+            stats.sTot = stats.c60 + stats.c39 + (stats.sTot - stats.c39);
+            let come = Math.round(stats.c39 + (stats.c60 * 0.33));
+            let newS = Math.round(come * 0.3);
+            let sumS = Math.round(newS * prc);
+            let diff = trg - sumS;
+            let txt = `ПЛАН ${adm.toUpperCase()}   ${new Date().toLocaleDateString()}\nВыручка: ${trg} zł\nЗвонки: 100\nДозвоны: 20\nЗаписи: 5\n————————————————\n`;
+            Object.keys(sessions).sort().forEach(k => {
+                let s = sessions[k];
+                txt += `Расписание\n————————————————\n${s.t} - ${s.g}\n————————————————\n`;
+                if(s.s.length) txt += `Звёзды 🌟\n${s.s.join('\n')}\n`;
+                if(s.u.length) txt += `\nАпгрейды📈\n${s.u.join('\n')}\n`;
+                txt += `\n`;
+            });
+            txt += `————————————————\nЗаписаны на пробное: ${stats.sTot}\nПридут по плану: ${come}\nПродажи новым: ${newS}\nСумма: ${sumS}\n🔥 ДО ПЛАНА: ${diff}`;
+            document.getElementById('plan-out').value = txt; document.getElementById('plan-res').classList.remove('hidden');
+        }
+        function copyPlan() { navigator.clipboard.writeText(document.getElementById('plan-out').value); alert("Скопировано!"); }
+    </script>
+</body>
+</html>

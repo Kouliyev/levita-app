@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEVITA OS FINAL</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>LEVITA OS FAST</title>
+    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/chart.js"></script>
+
     <style>
         body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; flex-direction:column; text-align: center; padding: 20px;}
@@ -28,9 +30,9 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <p id="loader-text">Подключение (подождите 5 сек)...</p>
+        <p id="loader-text">Подключение (новая попытка)...</p>
         <div id="error-msg"></div>
-        <button id="retry-btn" class="btn hidden" onclick="location.reload()" style="width: 200px; margin-top: 20px;">Попробовать снова</button>
+        <button id="retry-btn" class="btn hidden" onclick="location.reload()">Попробовать снова</button>
     </div>
 
     <div id="login-screen" class="hidden container">
@@ -75,28 +77,24 @@
         const SB_KEY = 'sb_publishable_AvbjBkXGEiBVMj-58sjZnA_zt8mqBv3';
         let supabase, employees = [], currentUser = null;
 
-        // --- ГЛАВНАЯ ФУНКЦИЯ ЗАПУСКА ---
-        async function init() {
-            // ТАЙМЕР: Если через 7 секунд не загрузится, выдать ошибку
-            const timer = setTimeout(() => {
-                showError("Тайм-аут: База данных долго не отвечает. Проверьте интернет или VPN.");
-            }, 7000);
+        // ПРИНУДИТЕЛЬНЫЙ ТАЙМЕР ЗАПУСКАЕТСЯ СРАЗУ
+        setTimeout(() => {
+            const lText = document.getElementById('loader-text');
+            if(lText && lText.style.display !== 'none') {
+                showError("⚠️ Интернет блокирует загрузку Supabase. Попробуйте отключить VPN или AdBlock.");
+            }
+        }, 6000);
 
+        async function init() {
             try {
-                if (!window.supabase) throw new Error("Библиотека Supabase не найдена.");
+                if (!window.supabase) throw new Error("Supabase не загрузился.");
                 supabase = window.supabase.createClient(SB_URL, SB_KEY);
                 
-                // Пробуем скачать сотрудников
                 const { data, error } = await supabase.from('employees').select('*');
-                
-                clearTimeout(timer); // Если дошли сюда - отменяем таймер ошибки
-
                 if (error) throw error;
-                if (!data || data.length === 0) throw new Error("Список сотрудников пуст.");
-
-                employees = data;
                 
-                // Заполняем списки
+                employees = data || [];
+                
                 const s1 = document.getElementById('login-user');
                 const s2 = document.getElementById('n-who');
                 s1.innerHTML = '<option value="" disabled selected>Кто ты?</option>';
@@ -107,7 +105,6 @@
                     s2.innerHTML += `<option value="${u.name}">${u.name}</option>`;
                 });
 
-                // Проверка памяти
                 const saved = localStorage.getItem('levita_user');
                 if (saved) {
                     const u = employees.find(e => e.name === saved);
@@ -117,7 +114,6 @@
                 }
 
             } catch (err) {
-                clearTimeout(timer);
                 showError(err.message);
             }
         }
@@ -127,7 +123,7 @@
             document.getElementById('loader-text').style.display = 'none';
             const el = document.getElementById('error-msg');
             el.style.display = 'block';
-            el.innerHTML = `⚠️ ОШИБКА:<br>${msg}`;
+            el.innerHTML = msg;
             document.getElementById('retry-btn').classList.remove('hidden');
         }
 
